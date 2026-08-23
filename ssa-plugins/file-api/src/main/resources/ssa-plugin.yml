@@ -1,0 +1,7 @@
+key: file-api
+version: 2.0.0
+routePrefix: /fileApi
+author: ssa-team
+releaseDate: 2026-02-01
+description: File API plugin
+

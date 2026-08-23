@@ -1,0 +1,8 @@
+key: import-api
+version: 2.0.0
+mainClass: com.ssa.plugin.ImportApiPlugin
+routePrefix: /importApi
+author: ssa-team
+releaseDate: 2026-02-01
+description: Import API plugin
+

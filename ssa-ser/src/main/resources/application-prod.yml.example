@@ -1,0 +1,27 @@
+# ============================================================
+# 生产配置模板（application-prod.yml.example）
+# 用法：复制为 application-prod.yml，填入真实值；生产环境强烈建议
+#       用环境变量/配置中心注入密码，不要把明文留在文件中。
+# ============================================================
+server:
+  port: 9913
+sqlapi:
+  datasource:
+    main:
+      driver-class-name: org.postgresql.Driver
+      url: jdbc:postgresql://<服务器IP>:5432/ssa_eas
+      username: <数据库用户名，不要用 postgres 超级用户>
+      password: ${DB_PASSWORD}   # 生产请用环境变量注入，例如 -DDB_PASSWORD=xxx
+      max-active: 200
+  template:
+    cache: 0
+    path:
+      - /var/yp/server/sqlapi-ser/api
+security:
+  jwt:
+    key: ${JWT_KEY}   # 生产请用环境变量注入，且务必用强随机值
+    ttl: 720000
+  refresh:
+    ttl: 2592000
+  ignore-urls:
+#    - /auth/** 不能加这个，否则用户密码错误后后面会一直报401

@@ -1,0 +1,14 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB      # 单文件上限
+      max-request-size: 200MB   # 单次请求上限（多文件/带其它字段时）
+  application:
+    name: ssaApi
+  profiles:
+    active: dev
+  jackson:
+    ## 默认序列化时间格式
+    date-format: yyyy-MM-dd HH:mm:ss
+    ## 默认序列化时区
+    time-zone: GMT+8

@@ -1,0 +1,57 @@
+# ============================================================
+# 本地开发配置模板（application-dev.yml.example）
+# 用法：复制本文件为 application-dev.yml，填入你的真实值。
+# 注意：application-dev.yml 已被 .gitignore 忽略，不会提交到仓库，
+#       请勿把真实密码/密钥写进会被提交的配置文件。
+# ============================================================
+server:
+  port: 8000
+ssa:
+  plugin:
+    pluginPath: D:\work\SSAuditor\SSA-OPC\Dev\ssa-service\plugins\
+    plugins:
+      - key: file-api
+        fileName: file-api-2.0.0.jar
+        state: enable
+        type: jar
+      - key: push-way
+        fileName: push-way-2.0.0.jar
+        state: enable
+        type: jar
+      - key: mcp-api
+        fileName: mcp-api-2.0.0.jar
+        state: enable
+        type: jar
+  sqlapi:
+    datasource:
+      main:
+        driver-class-name: org.postgresql.Driver
+        url: jdbc:postgresql://<服务器IP>:5432/ssa_eas
+        username: <数据库用户名>
+        password: <数据库密码>
+        max-active: 200
+    template:
+      cache: 0
+      path:
+        - D:\work\SSAuditor\SSA-OPC\Dev\ssa-eas-vue\sql\ymlapi
+fileapi:
+  filePath: D:\work\SSAuditor\SSA-OPC\Dev\ssa-service\plugins\files
+# ↓↓↓ 阿里云短信密钥（本地开发直接填这里；不提交） ↓↓↓
+aliyun:
+  sms:
+    accessKeyId: <你的阿里云AccessKeyId>
+    accessKeySecret: <你的阿里云AccessKeySecret>
+    regionId: cn-hangzhou
+    signName: SSA
+    templateCode: SMS_184220802
+# 安全配置
+security:
+  jwt:
+    key: <请改成强随机JWT签名密钥，勿用 ssa/ssaAuditor>
+    ttl: 720000
+  refresh:
+    ttl: 2592000
+  ignore-urls:
+    - /sqlApi/v1/**
+    - /mcp/**
+    - /auth/**

@@ -1,0 +1,10 @@
+key: mcp-api
+version: 0.1.0
+routePrefix: /mcp
+type: jar
+author: ssa-team
+description: |
+  MCP server plugin (Streamable HTTP)。
+  让 WorkBuddy 等 MCP 客户端通过 HTTP 直接调用 sql-api。
+  路由前缀 /mcp 由插件加载器自动拼装，最终端点为 POST /mcp。
+  工具：sql_api(通用) / save_user / get_current_user / list_projects / list_workpapers。
