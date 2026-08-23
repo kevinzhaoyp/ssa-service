@@ -368,23 +368,7 @@
   </div>
 </section>
 
-<section>
-  <div class="wrap">
-    <h2><span class="num">09</span>起源故事（作者自述）</h2>
-    <p class="sub">一个被写死 SQL 折磨过的程序员，如何一步步把它逼成今天的样子。</p>
-    <div class="story">
-      <h3>作者 · SSA Service 原作者</h3>
-      <p>我最早是个 Delphi 程序员，平时就爱捣腾各种框架。2017 年之前，我还写过一套 Delphi 版的低代码平台，PPReport 之类的小东西——除了那套低代码平台，基本都死在了自己的硬盘上。</p>
-      <p>2019 年我从 Delphi 转 Java，接手的是一个可以说很烂的系统，底层用的是 JFinal 框架。说来惭愧，JFinal 里的 ActiveRecord，后来成了今天这套内核的核心。</p>
-      <p>那个系统里全是写死的 SQL 语句。加个字段、改个字段，一个小小的调整都是灾难。我维护了大概一两个月，就开始琢磨：怎么让自己轻松点？于是我把这些 SQL 写成模板放到外面，热加载进来——小问题谁都可以改，改好了告诉我，我来合并。</p>
-      <p>大概是 2019 年下半年，微服务特别火，火到不用就好像落后了，不管系统本身大小、也不管客户能提供什么服务器，都上微服务。我当时也很期待，就找了前大厂同事、一位 Java 高手，帮我搭了一套微服务架构。我兴冲冲一头扎进去，一开始为业务怎么拆分就头疼，没多久我就拆出了好几个微服务——可业务还没写完呢。</p>
-      <p>最后发现，客户就只给一到两台服务器。数据库、Redis、Nacos……各种中间件一跑起来，资源就没了。要把所有微服务都跑起来，那就是灾难；再加上各种运维工具不起、日志满天飞、还不好找。那一刻我才意识到：微服务不是银弹，轻量才是大多数项目的真相。</p>
-      <p>后来，我边做业务，边加班加点，写出了插件机制（以我当时有限的 Java 水平），把 ActiveRecord 也一并搬了进来，慢慢形成了内核：sql-api + MethodApi（MethodApi 用注解自动注册成 API，还有覆盖 sql-api 的能力）。为了写这套东西，我受了很大的阻力，但后来全公司也大规模用上了。</p>
-      <p>再后来，我（被离开了）那家公司（2026 年 7 月），被 AI 搞的大环境也很差，我也一直找不到工作。我就在想：与其让它再死在我的硬盘里，不如把它开源出来。对了，就是现在，我又开发了 mcp-api，可以动态注册 MCP Tool 了——现在已经和 WorkBuddy 打通。</p>
-      <p style="margin-bottom:0">这就是 SSA Service。它不太完美，但它真是我被现实踹出来的、一个想让「写接口」变轻松的笨办法。</p>
-    </div>
-  </div>
-</section>
+  <!-- 起源故事已留档至 docs/起源故事_留档.md，暂不对外公开 -->
 
 <section>
   <div class="wrap">
@@ -408,27 +392,44 @@
   <div class="wrap">
     <h2><span class="num">11</span>快速感受</h2>
     <div class="card">
-      <pre><span class="c"># 1) 启动单体服务（自带插件目录 ./plugins）</span>
-java -Dloader.path=plugins/lib/ -jar ssa-ser-2.0.0.jar
+      <pre><span class="c"># 1) 构建（JDK 17+、Maven 3.8+）</span>
+git clone https://gitee.com/kevinzhaoyp/ssa-service.git
+cd ssa-service &amp;&amp; mvn clean package -DskipTests
 
-<span class="c"># 2) 运行时启停插件（无需重启）</span>
-POST /sqlApi/v1/plugin.enablePlugin?pluginKey=sql-api
-POST /sqlApi/v1/plugin.disablePlugin?pluginKey=push-way
+<span class="c"># 2) 进入 client 产物目录，准备插件与模板（jar 同目录即根目录）</span>
+cd ssa-ser-client/target
+mkdir -p plugins sqlapi
+cp ../../ssa-plugins/sql-api/target/sql-api-2.0.0.jar plugins/
 
-<span class="c"># 3) 调用一个 SQL 接口</span>
-POST /sqlApi/v1/user/list  { "params": { "status": 1 } }
+<span class="c"># 3) 写第一个 SQL 接口（无需建表）：文件 sqlapi/now.yml</span>
+content: SELECT NOW() AS now_time
 
-<span class="c"># 4) MethodApi：用注解注册并覆盖同名 SQL 接口</span>
+<span class="c"># 4) 配数据源（文件 application.yml，jar 同目录）</span>
+sqlapi:
+  datasource:
+    main:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://127.0.0.1:3306/test?useSSL=false&amp;serverTimezone=Asia/Shanghai
+      username: root
+      password: 你的密码
+
+<span class="c"># 5) 启动（嵌入式形态：无登录、无鉴权，默认端口 8080）</span>
+java -jar ssa-ser-client-2.0.0.jar
+
+<span class="c"># 6) 调用（请求体即参数对象，无参传 {}）</span>
+curl -X POST http://localhost:8080/sqlApi/v1/now -H 'Content-Type: application/json' -d '{}'
+
+<span class="c"># 7) MethodApi：用注解注册并覆盖同名 SQL 接口</span>
 @SsaApiClass("report")
 public class ReportApi {
     @SsaApiMethod(name = "profit")   // 注册名 = report.profit，同名时覆盖 sql-api
     public Object profit(Map params) { /* 复杂逻辑写这里 */ return ...; }
 }
 
-<span class="c"># 5) AI 智能体接入 MCP（标记 mcptool:true 的接口自动出现）</span>
-POST /mcp   →  tools/list   →  tools/call user_list { "status": 1 }</pre>
+<span class="c"># 8) AI 智能体接入 MCP（标记 mcptool:true 的接口自动出现）</span>
+POST /mcp   →  tools/list   →  tools/call now</pre>
     </div>
-    <div class="note">📌 以上路径/参数为基于源码结构整理的最小示意，正式文档将以仓库 README 的精确端点为准。</div>
+    <div class="note">📌 <code>ssa-ser-client</code> 为嵌入式形态，默认无登录鉴权，最适合本地尝鲜。插件目录 <code>plugins/</code> 与 SQL 模板目录 <code>sqlapi/</code> 默认取运行 jar 所在目录；数据源 key 为 <code>sqlapi.datasource.main.*</code>。完整精确端点以仓库 README 为准。</div>
   </div>
 </section>
 
