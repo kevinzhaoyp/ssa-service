@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.ssa</groupId>
+        <artifactId>ssa-plugins</artifactId>
+        <version>2.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mcp-api</artifactId>
+    <packaging>jar</packaging>
+    <description>MCP server plugin (Streamable HTTP)，让 WorkBuddy 等 MCP 客户端直接调用 sql-api</description>
+
+    <dependencies>
+        <!-- 提供 ssa-core(ApiRunner) + 插件加载器 + Spring MVC(RequestMappingHandlerMapping) -->
+        <dependency>
+            <groupId>org.ssa</groupId>
+            <artifactId>ssa-core-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- MCP Java SDK（编译期引用即可；运行时由 ssa-ser 主服务 classpath 提供，插件 jar 不自带）
+             仅引 mcp-core + mcp-json-jackson2，避免 mcp 聚合包传递引入的 Jackson 3 冲突 -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-core</artifactId>
+            <version>2.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-json-jackson2</artifactId>
+            <version>2.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Jackson（SDK 传输层需要；编译期引用，运行期由 ssa-ser 主服务 classpath 提供） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- SnakeYAML：运行时动态扫描 ymlapi 目录、解析 mpctool 标记与 params2 字段。
+             版本由 Spring Boot BOM 管理；运行期由 ssa-ser 主服务 classpath 提供（其加载 application.yml 依赖它） -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-context</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- jar 直接产出到 ssa-service/plugins，供 ssa-ser 启动时加载 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <outputDirectory>${plugins.output.dir}</outputDirectory>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

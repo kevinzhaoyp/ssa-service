@@ -1,0 +1,13 @@
+server:
+  port: 9000
+spring:
+  application:
+    name: ssa-ai
+  ai:
+    dashscope:
+      api-key: sk-1ee28c01984f4f2bb978547d3c093670
+      # https://hunyu an.cloud.tencent.com/#/app/apiKeyManage
+      #  apikey1773720034927 API KEY： sk-hdP1LxaOwT0ZXxXIvXJTEpzo3kxnySLM2ZqM4aflYT2uAUwu
+agent:
+  shell:
+    command: cmd.exe

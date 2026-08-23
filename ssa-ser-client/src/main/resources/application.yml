@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: clientApi
+  profiles:
+    active: dev
+  jackson:
+    ## 默认序列化时间格式
+    date-format: yyyy-MM-dd HH:mm:ss
+    ## 默认序列化时区
+    time-zone: GMT+8

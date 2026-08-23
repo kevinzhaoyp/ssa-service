@@ -1,0 +1,72 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+spring:
+  application:
+    name: gateway
+  config:
+    import: "optional:nacos:${spring.application.name}.yaml"
+  cloud:
+    nacos:
+      username: nacos
+      password: yds@2019
+      discovery:
+        server-addr: 113.44.117.125:8800
+        namespace: gateway2
+      config:
+        server-addr: 113.44.117.125:8800
+        namespace: gateway2
+        extension-configs:
+          - data-id: discovery.yaml
+            group: PUBLIC
+            refresh: true
+          - data-id: redis-auth.yaml
+            group: PUBLIC
+            refresh: true
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+  data:
+    redis:
+      # redis数据库索引（默认为0）
+      host: 113.44.117.125
+      port: 9900
+      password: yds@2019
+      #连接超时时间(毫秒)
+      timeout: 2000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# 网关配置
+ssa:
+  gateway:
+    rate-limit:
+      max-requests-per-minute: 100
+      key-prefix: "rate_limit:"
+      enabled: true
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForSSAGateway}
+  expiration: ${JWT_EXPIRATION:86400}
+
+# Actuator配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      simple:
+        enabled: true

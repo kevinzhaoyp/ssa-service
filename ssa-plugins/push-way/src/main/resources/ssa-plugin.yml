@@ -1,0 +1,7 @@
+key: push-way
+version: 1.0.0
+routePrefix: /pushWay
+author: ssa-team
+releaseDate: 2027-08-17
+description: Push Way plugin
+
