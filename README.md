@@ -47,28 +47,69 @@
 
 ---
 
-## 快速开始
+## 快速开始（ssa-ser-client · 零鉴权尝鲜版）
+
+> 想**最快跑起来、不碰鉴权登录**？用嵌入式形态 `ssa-ser-client`：启动即连数据库，直接写 SQL 接口，无需登录。适合本地尝鲜、CLI/脚本直连、把后台能力快速暴露成 API。
+
+**① 构建（JDK 17+、Maven 3.8+）**
 
 ```bash
-# 环境要求：JDK 17+、Maven 3.8+
 git clone https://gitee.com/kevinzhaoyp/ssa-service.git
 # 或：git clone https://github.com/kevinzhaoyp/ssa-service.git
 cd ssa-service
 mvn clean package -DskipTests
-
-# 启动单体服务（插件由配置目录扫描，默认 ./plugins）
-java -jar ssa-ser/target/ssa-ser-2.0.0.jar
 ```
 
-> 📌 插件扫描目录、端口、鉴权等以 `ssa-ser/src/main/resources/application.yml` 为准；若启动依赖自定义 `loader.path` 等参数，请以仓库实际脚本确认。
+构建产物：`ssa-ser-client/target/ssa-ser-client-2.0.0.jar` 与 `ssa-plugins/sql-api/target/sql-api-2.0.0.jar`。
 
-调用一个 SQL 接口：
+**② 准备插件与模板目录**（jar 同目录即插件/模板根目录）
+
+进入 `ssa-ser-client/target`，建 `plugins/`（放插件 jar）与 `sqlapi/`（放 SQL 模板），并把 sql-api 插件放进去：
 
 ```bash
-curl -X POST http://localhost:8080/sqlApi/v1/user/list \
-  -H 'Content-Type: application/json' \
-  -d '{ "params": { "status": 1 } }'
+cd ssa-ser-client/target
+mkdir -p plugins sqlapi
+cp ../../ssa-plugins/sql-api/target/sql-api-2.0.0.jar plugins/
 ```
+
+**③ 写第一个 SQL 接口**（无需建表，查数据库当前时间）
+
+在 `ssa-ser-client/target/sqlapi/now.yml` 写入：
+
+```yaml
+content: SELECT NOW() AS now_time
+```
+
+**④ 配置数据源**（在 `ssa-ser-client/target/application.yml`，jar 同目录的外部配置优先于 jar 内）
+
+```yaml
+sqlapi:
+  datasource:
+    main:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://127.0.0.1:3306/test?useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: 你的密码
+```
+
+> 💡 `ssa-ser-client` 默认仅内置 **SQL Server** 驱动。用 MySQL/PostgreSQL 需先在 `ssa-ser-client/pom.xml` 加入对应 JDBC 驱动依赖（如 `com.mysql:mysql-connector-j`）再重新 `mvn package`；或直接使用 SQL Server 跳过此步。
+
+**⑤ 启动（默认端口 8080，无登录、无鉴权）**
+
+```bash
+java -jar ssa-ser-client-2.0.0.jar
+```
+
+**⑥ 调用**
+
+```bash
+curl -X POST http://localhost:8080/sqlApi/v1/now \
+  -H 'Content-Type: application/json' -d '{}'
+```
+
+返回含 `now_time` 的 JSON 即跑通 —— 你已经用「写一份 YML」换到了一个 HTTP 接口，全程没写一行 Java、没碰登录鉴权。
+
+> 📌 插件扫描目录 `plugins/`、SQL 模板目录 `sqlapi/` 默认取**运行 jar 所在目录**（`SpringUtil.getJarHome()`）；数据源配置 key 为 `sqlapi.datasource.main.*`，由 sql-api 插件读取并交给 JFinal ActiveRecord 管理。
 
 ---
 
@@ -78,20 +119,21 @@ curl -X POST http://localhost:8080/sqlApi/v1/user/list \
 
 ```yaml
 # user/list.yml
-key: user-list
 datasource: main
 describe: 查询启用用户
 content: |
   SELECT id, name, email FROM ssa_user
-  WHERE status = #{status}
+  WHERE status = #(status)
   ORDER BY id
 params2:
   - name: status
     type: int
-    required: 1
+    required: true
     hint: 用户状态 1=启用 0=禁用
 returnType: list
 ```
+
+> 占位符采用 JFinal ActiveRecord 模板语法 `#(name)`（或位置参数 `?`）；`params2` 用于参数校验，`required` 为布尔值。调用时请求体即参数对象，如 `POST /sqlApi/v1/user/list -d '{"status":1}'`。
 
 **② 末尾加一行 `mcptool: true`，它自动成为 MCP 工具：**
 
@@ -164,19 +206,13 @@ public class ReportApi {
 
 ---
 
-## 起源故事（节选）
-
-> 一个被写死 SQL 折磨过的程序员，如何一步步把它逼成今天的样子。
-
-作者最早是 Delphi 程序员，爱捣腾框架；2019 年转 Java，接手了一个底层用 JFinal 的「很烂的系统」。系统里全是写死的 SQL，改个字段都是灾难 —— 于是作者把 SQL 写成模板放到外面热加载。2019 下半年微服务大火，作者也搭了一套微服务，结果发现客户只给 1~2 台服务器，中间件一跑资源就没了，「微服务变成了灾难」。后来边做业务边写出了插件机制，把 ActiveRecord 搬进来，形成内核；全公司大规模用上。再后来，作者（被离开了）那家公司（2026 年 7 月），被 AI 搞的大环境也很差，一直找不到工作 —— 与其让它再死在硬盘里，不如开源。现在又开发了 mcp-api，可动态注册 MCP Tool，已和 WorkBuddy 打通。
-
-> 完整故事、架构图与更多示例见项目主页（Gitee Pages / GitHub Pages）。
+<!-- 起源故事已留档至 docs/起源故事_留档.md，暂不置于 README -->
 
 ---
 
 ## 一起共建
 
-框架已开源，但它需要更多人一起养大。原作者目前时间有限、Java 水平也有限，所以真心希望社区能接住它：**提 Issue、修 Bug、补文档、写示例插件、优化内核，甚至只是来聊聊架构想法 —— 有想法、有时间的你，都是我们想找的同行者。**
+框架已开源，但它需要更多人一起养大。原作者目前时间有限，所以真心希望社区能接住它：**提 Issue、修 Bug、补文档、写示例插件、优化内核，甚至只是来聊聊架构想法 —— 有想法、有时间的你，都是我们想找的同行者。**
 
 你的代码会被真实项目使用，一起把它打磨成更好用的「无业务、全插件化」底座。
 
