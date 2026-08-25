@@ -42,9 +42,9 @@
 
 | 组件 | 地址 |
 |------|------|
-| MySQL（主库） | `&lt;SERVER_IP&gt;:9920/sso` |
-| Redis | `&lt;SERVER_IP&gt;:9900` |
-| Nacos | `&lt;SERVER_IP&gt;:8800`（namespace: `gateway2`） |
+| MySQL（主库） | `113.44.117.125:9920/sso` |
+| Redis | `113.44.117.125:9900` |
+| Nacos | `113.44.117.125:8800`（namespace: `gateway2`） |
 
 ### 1.3 前端对接说明
 
@@ -1597,9 +1597,9 @@ ssa-ser 的 `AuthV1.login()` 捕获所有异常并返回 `ApiResult.failed(ex.ge
 
 | 环境 | 数据库 | 说明 |
 |------|--------|------|
-| dev（MySQL） | `&lt;SERVER_IP&gt;:9920/sso` | ssa-ser dev 环境 |
-| dev（SQL Server） | `&lt;SERVER_IP&gt;:9910/zssys` | ssa-ser-client dev 环境 |
-| ssa-oauth | `&lt;SERVER_IP&gt;:9920/ssa` | 注意数据库名不同（`ssa` vs `sso`） |
+| dev（MySQL） | `113.44.117.125:9920/sso` | ssa-ser dev 环境 |
+| dev（SQL Server） | `113.44.117.125:9910/zssys` | ssa-ser-client dev 环境 |
+| ssa-oauth | `113.44.117.125:9920/ssa` | 注意数据库名不同（`ssa` vs `sso`） |
 
 **影响**：ssa-oauth 的 sql-api 配置指向 `ssa` 库，ssa-ser 指向 `sso` 库，两套服务的用户表数据可能不同步。
 
