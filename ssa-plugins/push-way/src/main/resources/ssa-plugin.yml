@@ -1,7 +1,7 @@
 key: push-way
-version: 1.0.0
+version: 1.1.0
 routePrefix: /pushWay
 author: ssa-team
 releaseDate: 2027-08-17
-description: Push Way plugin
+description: 推送对接插件（小程序订阅消息 / 服务号模板消息 / 短信），不含业务逻辑；业务侧通过 pushWay.send 调用
 

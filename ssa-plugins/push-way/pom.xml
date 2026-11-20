@@ -62,8 +62,17 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${plugins.output.dir}/lib</outputDirectory>
-                            <!-- 只拷贝指定的依赖，不拷贝传递依赖 -->
-                            <includeArtifactIds>angus-mail,dysmsapi20170525</includeArtifactIds>
+                            <!-- 只拷贝指定的依赖，不拷贝传递依赖。
+                                 ⚠️ 必须列出 angus-mail / dysmsapi 的完整传递闭包，
+                                 漏一个就是运行时 NoClassDefFoundError（如 jakarta/mail/Authenticator）。
+                                 闭包清单用 mvn dependency:tree 提取，改依赖版本后要重新核对。 -->
+                            <includeArtifactIds>angus-mail,jakarta.mail-api,jakarta.activation-api,angus-activation,
+                                dysmsapi20170525,tea,tea-util,tea-openapi,tea-xml,endpoint-util,openapiutil,
+                                credentials-java,alibabacloud-gateway-spi,
+                                okhttp,okio,okio-jvm,kotlin-stdlib,kotlin-stdlib-jdk7,kotlin-stdlib-jdk8,kotlin-stdlib-common,
+                                gson,error_prone_annotations,commons-codec,annotations,
+                                jakarta.xml.bind-api,jaxb-api,jaxb-core,jaxb-impl,dom4j,ini4j,
+                                bcpkix-jdk15on,bcprov-jdk15on,bcutil-jdk15on</includeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>
