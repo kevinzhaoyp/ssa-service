@@ -7,8 +7,8 @@ import com.aliyun.teaopenapi.models.Config;
 import com.ssa.core.utils.ApiResult;
 import com.ssa.plugin.annotation.SsaApiClass;
 import com.ssa.plugin.annotation.SsaApiMethod;
+import com.ssa.plugin.pushWay.config.PushRegistry;
 import com.ssa.plugin.pushWay.config.SmsConfig;
-import com.ssa.plugin.pushWay.config.SmsPushConfig;
 import com.ssa.plugin.pushWay.model.PushResult;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +21,10 @@ import java.util.Map;
  * 阿里云短信发送。
  *
  * 两种用法：
- *  1) send(phone, safeCode)              —— 旧接口，验证码模板（沿用 aliyun.sms.templateCode），保留兼容
- *  2) sendTemplate(phone, key, fields)   —— 通用模板发送，模板键对应 push.sms.templates.<key>
+ *  1) send(phone, safeCode)              —— 旧接口，验证码模板（push_config: sms/code_template），保留兼容
+ *  2) sendTemplate(phone, key, fields)   —— 通用模板发送，模板键对应 push_template（channel='sms'）
  *
- * 短信模板必须先报备通过；报备模板里的变量顺序由 push.sms.templates.<key>.params 指定。
+ * 短信模板必须先报备通过；报备模板里的变量顺序由 push_template.fields_map（数组）指定。
  */
 @Slf4j
 @SsaApiClass("smsSender")
@@ -34,7 +34,7 @@ public class AliyunSmsSender {
     @Resource
     private SmsConfig smsConfig;
     @Resource
-    private SmsPushConfig smsPushConfig;
+    private PushRegistry registry;
 
     /** 旧接口：验证码短信（保持原签名与返回，避免破坏已有调用方） */
     @SsaApiMethod
@@ -56,24 +56,26 @@ public class AliyunSmsSender {
      * 通用模板发送（供通知 worker 调用）。
      *
      * @param phone       手机号（app_user.phone）
-     * @param templateKey 模板键（push.sms.templates 下的 key）
+     * @param templateKey 模板键（push_template，channel='sms'）
      * @param fields      业务字段值，按模板 params 顺序取
      */
     public Map<String, Object> sendTemplate(String phone, String templateKey, Map<String, Object> fields) {
         if (isBlank(phone)) {
             return PushResult.fail("sms", -1, "no phone", false, false);
         }
-        SmsPushConfig.Template tpl = smsPushConfig.getTemplates() == null
-                ? null : smsPushConfig.getTemplates().get(templateKey);
-        if (tpl == null || isBlank(tpl.getCode())) {
+        PushRegistry.Tpl tpl = registry.template("sms", templateKey);
+        if (tpl == null || isBlank(tpl.getId())) {
             // 短信是最后一道兜底，模板没报备就直接终态，不再降级
             return PushResult.fail("sms", -2, "sms template not configured: " + templateKey, false, false);
+        }
+        if (tpl.getParams().isEmpty()) {
+            return PushResult.fail("sms", -2, "sms fields_map missing: " + templateKey, false, false);
         }
 
         String paramJson = buildParams(tpl.getParams(), fields);
         SendSmsResponse resp;
         try {
-            resp = doSend(phone, tpl.getCode(), paramJson);
+            resp = doSend(phone, tpl.getId(), paramJson);
         } catch (Exception e) {
             log.error("短信发送异常 phone={} key={}: {}", mask(phone), templateKey, e.getMessage());
             return PushResult.fail("sms", -4, "sms client error: " + e.getMessage(), true, false);

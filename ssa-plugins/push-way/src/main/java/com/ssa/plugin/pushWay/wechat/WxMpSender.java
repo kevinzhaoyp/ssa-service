@@ -1,6 +1,7 @@
 package com.ssa.plugin.pushWay.wechat;
 
 import com.ssa.plugin.pushWay.config.MpPushConfig;
+import com.ssa.plugin.pushWay.config.PushRegistry;
 import com.ssa.plugin.pushWay.model.PushResult;
 import com.ssa.plugin.pushWay.util.PushHttp;
 import com.ssa.plugin.pushWay.util.WxFields;
@@ -17,6 +18,7 @@ import java.util.Set;
 /**
  * 服务号模板消息发送（POST /cgi-bin/message/template/send）。
  *
+ * 模板 ID 与字段映射来自 push_template 表（channel='mp'，PushRegistry 60s 缓存）。
  * 前提：用户已关注服务号且 app_user.mp_open_id 有值（靠 /wx/mp/event + UnionID 绑定回填）。
  * 合规：只允许发「用户触发后的即时服务结果」，上课提醒等到期提醒类不得走此通道。
  */
@@ -32,15 +34,20 @@ public class WxMpSender {
     @Resource
     private MpPushConfig config;
     @Resource
+    private PushRegistry registry;
+    @Resource
     private WxTokenProvider tokenProvider;
 
     public Map<String, Object> send(String mpOpenId, String templateKey, String page, Map<String, Object> fields) {
         if (isBlank(mpOpenId)) {
             return PushResult.fail("mp", -1, "no mp_openid", false, true);
         }
-        MpPushConfig.Template tpl = config.getTemplates() == null ? null : config.getTemplates().get(templateKey);
+        PushRegistry.Tpl tpl = registry.template("mp", templateKey);
         if (tpl == null || isBlank(tpl.getId())) {
             return PushResult.fail("mp", -2, "template not configured: " + templateKey, false, true);
+        }
+        if (tpl.getFields().isEmpty()) {
+            return PushResult.fail("mp", -2, "template fields_map missing: " + templateKey, false, true);
         }
 
         Map<String, Object> data = WxFields.buildData(tpl.getFields(), fields == null ? new HashMap<>() : fields);

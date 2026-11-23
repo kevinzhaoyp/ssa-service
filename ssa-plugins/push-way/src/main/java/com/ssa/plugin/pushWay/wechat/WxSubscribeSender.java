@@ -1,5 +1,6 @@
 package com.ssa.plugin.pushWay.wechat;
 
+import com.ssa.plugin.pushWay.config.PushRegistry;
 import com.ssa.plugin.pushWay.config.WechatPushConfig;
 import com.ssa.plugin.pushWay.model.PushResult;
 import com.ssa.plugin.pushWay.util.PushHttp;
@@ -18,6 +19,7 @@ import java.util.Set;
  * 小程序订阅消息发送（POST /cgi-bin/message/subscribe/send）。
  *
  * 只做「对接」：不查业务表、不判断发什么，入参就是一条待发消息。
+ * 模板 ID 与字段映射来自 push_template 表（PushRegistry 60s 缓存），加类型不改代码。
  * 一次性订阅语义：用户授权一次只能发一条，额度用完返回 43101，属正常业务结果，不是故障。
  */
 @Slf4j
@@ -29,39 +31,10 @@ public class WxSubscribeSender {
 
     private static final Set<Integer> TOKEN_INVALID = Set.of(40001, 42001, 40014);
 
-    /** 未在配置里写 fields 时的兜底映射（与小程序 config.js 保持一致） */
-    private static final Map<String, Map<String, String>> DEFAULT_KEYS = new HashMap<>();
-
-    static {
-        Map<String, String> classRemind = new LinkedHashMap<>();
-        classRemind.put("title", "thing1");
-        classRemind.put("dateTime", "time2");
-        classRemind.put("place", "thing4");
-        classRemind.put("teacher", "thing5");
-        DEFAULT_KEYS.put("classRemind", classRemind);
-
-        Map<String, String> coursePublish = new LinkedHashMap<>();
-        coursePublish.put("title", "thing1");
-        coursePublish.put("dateTime", "time2");
-        coursePublish.put("place", "thing3");
-        DEFAULT_KEYS.put("coursePublish", coursePublish);
-
-        Map<String, String> bookingOk = new LinkedHashMap<>();
-        bookingOk.put("title", "thing1");
-        bookingOk.put("dateTime", "time2");
-        bookingOk.put("tip", "thing3");
-        DEFAULT_KEYS.put("bookingOk", bookingOk);
-        DEFAULT_KEYS.put("bookingCancel", bookingOk);
-
-        Map<String, String> cardLow = new LinkedHashMap<>();
-        cardLow.put("title", "thing1");
-        cardLow.put("left", "number4");
-        cardLow.put("expireAt", "time3");
-        DEFAULT_KEYS.put("cardLow", cardLow);
-    }
-
     @Resource
     private WechatPushConfig config;
+    @Resource
+    private PushRegistry registry;
     @Resource
     private WxTokenProvider tokenProvider;
 
@@ -75,16 +48,17 @@ public class WxSubscribeSender {
         if (isBlank(openId)) {
             return PushResult.fail("wechat", -1, "no openid", false, true);
         }
-        WechatPushConfig.Template tpl = config.getTemplates() == null ? null : config.getTemplates().get(templateKey);
+        PushRegistry.Tpl tpl = registry.template("wechat", templateKey);
         if (tpl == null || isBlank(tpl.getId())) {
-            // 模板没申请/没配置：不算故障，直接让它降级到别的渠道
+            // 模板没申请/没配置（push_template 无此行或 id 空）：不算故障，降级到别的渠道
             return PushResult.fail("wechat", -2, "template not configured: " + templateKey, false, true);
         }
+        if (tpl.getFields().isEmpty()) {
+            // fields_map 缺失会是 47003，直接按未配置降级并给出明确原因
+            return PushResult.fail("wechat", -2, "template fields_map missing: " + templateKey, false, true);
+        }
 
-        Map<String, String> mapping = (tpl.getFields() == null || tpl.getFields().isEmpty())
-                ? DEFAULT_KEYS.getOrDefault(templateKey, new LinkedHashMap<>())
-                : tpl.getFields();
-        Map<String, Object> data = WxFields.buildData(mapping, fields == null ? new HashMap<>() : fields);
+        Map<String, Object> data = WxFields.buildData(tpl.getFields(), fields == null ? new HashMap<>() : fields);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("touser", openId);

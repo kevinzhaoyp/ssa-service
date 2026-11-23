@@ -55,6 +55,7 @@ public final class WxFields {
         String type = wxKey.replaceAll("[0-9]+$", "").toLowerCase();
         switch (type) {
             case "thing":
+            case "short_thing":
                 return cut(v, 20);
             case "phrase":
                 return cut(v, 5);
